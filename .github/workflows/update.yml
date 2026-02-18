@@ -23,13 +23,8 @@ jobs:
           set -euo pipefail
 
           OUT="playlist.m3u"
-
-          # Source that may be HTML (token page) or M3U (channels)
           JIO_SOURCE="https://livetv-cb7.pages.dev/hotstar"
-
-          # Used only to extract Zee hdntl token
           ZEE_SOURCE="https://join-vaathala1-for-more.vodep39240327.workers.dev/zee5.m3u"
-
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
           curl_get() {
@@ -40,8 +35,7 @@ jobs:
           JIO_TEXT="$(curl_get "$JIO_SOURCE")"
 
           echo "2) Determine base playlist..."
-          BASE_M3U=""
-          if printf '%s\n' "$JIO_TEXT" | grep -q "^#EXTM3U"; then
+          if grep -q "^#EXTM3U" <<<"$JIO_TEXT"; then
             echo "   -> JIO_SOURCE is a playlist. Using it as base."
             BASE_M3U="$JIO_TEXT"
           else
@@ -54,17 +48,16 @@ jobs:
           fi
 
           echo "3) Extract Jio token (__hdnea__) from JIO_SOURCE (if present)..."
-          JIO_TOKEN="$(printf '%s' "$JIO_TEXT" | grep -oE '__hdnea__=[^"&[:space:]]+' | head -n1 || true)"
+          JIO_TOKEN="$(grep -oE '__hdnea__=[^"&[:space:]]+' <<<"$JIO_TEXT" | head -n1 || true)"
 
           echo "4) Fetch ZEE_SOURCE and extract Zee token (hdntl=...)..."
           ZEE_TEXT="$(curl_get "$ZEE_SOURCE")"
-          ZEE_TOKEN="$(printf '%s' "$ZEE_TEXT" | grep -oE 'hdntl=[^"'"'"'[:space:]]+' | head -n1 || true)"
+          ZEE_TOKEN="$(grep -oE 'hdntl=[^"'"'"'[:space:]]+' <<<"$ZEE_TEXT" | head -n1 || true)"
 
           echo "5) Patch tokens into base playlist and write $OUT ..."
           {
             echo "#EXTM3U"
-
-            printf '%s\n' "$BASE_M3U" | awk -v jio="$JIO_TOKEN" -v zee="$ZEE_TOKEN" '
+            awk -v jio="$JIO_TOKEN" -v zee="$ZEE_TOKEN" '
               function strip_query(u) { sub(/\?.*$/, "", u); return u }
               function keep_to_ext(u, ext,    p) {
                 p = index(u, ext)
@@ -76,21 +69,18 @@ jobs:
                 line = $0
                 if (line ~ /^#EXTM3U$/) next
 
-                # Patch #EXTHTTP for Jio (__hdnea__)
                 if (jio != "" && line ~ /#EXTHTTP/ && line ~ /__hdnea__=/) {
                   gsub(/__hdnea__=[^"}[:space:]]+/, jio, line)
                   print line
                   next
                 }
 
-                # Patch #EXTHTTP for Zee (hdntl)
                 if (zee != "" && line ~ /#EXTHTTP/ && line ~ /hdntl=/) {
                   gsub(/hdntl=[^"}[:space:]]+/, zee, line)
                   print line
                   next
                 }
 
-                # Patch Jio .mpd URLs
                 if (jio != "" && line ~ /^https?:\/\// && line ~ /\.mpd/) {
                   line = strip_query(line)
                   line = keep_to_ext(line, ".mpd")
@@ -98,7 +88,6 @@ jobs:
                   next
                 }
 
-                # Patch Zee .m3u8 URLs
                 if (zee != "" && line ~ /^https?:\/\// && line ~ /\.m3u8/) {
                   line = strip_query(line)
                   line = keep_to_ext(line, ".m3u8")
@@ -108,10 +97,10 @@ jobs:
 
                 print line
               }
-            '
+            ' <<<"$BASE_M3U"
           } > "$OUT"
 
-          head -n 1 "$OUT" | grep -q "^#EXTM3U$"
+          grep -q "^#EXTM3U$" <(head -n1 "$OUT")
 
       - name: Commit & Push
         run: |
