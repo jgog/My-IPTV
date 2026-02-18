@@ -27,15 +27,18 @@ jobs:
           ZEE_SOURCE="https://join-vaathala1-for-more.vodep39240327.workers.dev/zee5.m3u"
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
-          # Fetch Jio token (optional; no Jio channel list provided to apply it to)
-          JIO_TOKEN="$(
-            curl -fsSL -A "$UA" "$JIO_SOURCE" \
-            | grep -oE '__hdnea__=[^"&[:space:]]+' \
-            | head -n1 || true
-          )"
+          curl_get() {
+            curl -fsSL --retry 3 --retry-delay 2 -A "$UA" "$1"
+          }
+
+          # Fetch Jio page safely (avoid broken pipe with pipefail)
+          JIO_TOKEN=""
+          if JIO_HTML="$(curl_get "$JIO_SOURCE")"; then
+            JIO_TOKEN="$(printf '%s' "$JIO_HTML" | grep -oE '__hdnea__=[^"&[:space:]]+' | head -n1 || true)"
+          fi
 
           # Fetch Zee playlist (required)
-          ZEE_M3U="$(curl -fsSL -A "$UA" "$ZEE_SOURCE")"
+          ZEE_M3U="$(curl_get "$ZEE_SOURCE")"
 
           # Extract Zee token (optional)
           ZEE_TOKEN="$(printf '%s' "$ZEE_M3U" | grep -oE 'hdntl=[^"'"'"'[:space:]]+' | head -n1 || true)"
@@ -43,22 +46,22 @@ jobs:
           # Start output
           {
             echo "#EXTM3U"
+
             printf '%s\n' "$ZEE_M3U" | awk -v token="$ZEE_TOKEN" '
-              BEGIN { printedHeader=0 }
               {
                 line=$0
+
                 # Skip duplicate #EXTM3U from source
                 if (line ~ /^#EXTM3U$/) next
 
-                # If we have a token and this is a .m3u8 URL, rewrite to base + ?token
-                if (token != "" && line ~ /\.m3u8/) {
-                  # remove any existing querystring
+                # Only rewrite actual URL lines
+                if (token != "" && line ~ /^https?:\/\// && line ~ /\.m3u8/) {
                   sub(/\?.*$/, "", line)
-                  # ensure ends at .m3u8 (handles stray text after)
                   if (match(line, /\.m3u8/)) line = substr(line, 1, RSTART+RLENGTH-1)
                   print line "?" token
                   next
                 }
+
                 print $0
               }
             '
@@ -69,6 +72,9 @@ jobs:
               echo "# ${JIO_TOKEN}"
             fi
           } > "$OUT"
+
+          # Sanity check
+          head -n 1 "$OUT" | grep -q "^#EXTM3U$"
 
       - name: Commit & Push
         run: |
