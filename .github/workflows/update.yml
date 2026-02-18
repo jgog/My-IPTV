@@ -24,10 +24,10 @@ jobs:
 
           OUT="playlist.m3u"
 
-          # Base channels come from here (full playlist)
+          # Source that may be HTML (token page) or M3U (channels)
           JIO_SOURCE="https://livetv-cb7.pages.dev/hotstar"
 
-          # Used only to extract Zee hdntl token (can be a playlist or any page containing hdntl=...)
+          # Used only to extract Zee hdntl token
           ZEE_SOURCE="https://join-vaathala1-for-more.vodep39240327.workers.dev/zee5.m3u"
 
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -36,30 +36,34 @@ jobs:
             curl -fsSL --retry 3 --retry-delay 2 -A "$UA" "$1"
           }
 
-          echo "1) Fetch base playlist from JIO_SOURCE..."
-          BASE_M3U="$(curl_get "$JIO_SOURCE")"
+          echo "1) Fetch JIO_SOURCE..."
+          JIO_TEXT="$(curl_get "$JIO_SOURCE")"
 
-          # Ensure base looks like M3U
-          printf '%s\n' "$BASE_M3U" | head -n 1 | grep -q "^#EXTM3U" || {
-            echo "ERROR: JIO_SOURCE did not return an M3U playlist (#EXTM3U missing)."
-            exit 1
-          }
+          echo "2) Determine base playlist..."
+          BASE_M3U=""
+          if printf '%s\n' "$JIO_TEXT" | grep -q "^#EXTM3U"; then
+            echo "   -> JIO_SOURCE is a playlist. Using it as base."
+            BASE_M3U="$JIO_TEXT"
+          else
+            echo "   -> JIO_SOURCE is not a playlist. Using existing $OUT as base."
+            if [ ! -s "$OUT" ]; then
+              echo "ERROR: $OUT is missing/empty and JIO_SOURCE is not an M3U. No base channels available."
+              exit 1
+            fi
+            BASE_M3U="$(cat "$OUT")"
+          fi
 
-          echo "2) Extract Jio token (__hdnea__) from base (if present)..."
-          JIO_TOKEN="$(printf '%s' "$BASE_M3U" | grep -oE '__hdnea__=[^"&[:space:]]+' | head -n1 || true)"
+          echo "3) Extract Jio token (__hdnea__) from JIO_SOURCE (if present)..."
+          JIO_TOKEN="$(printf '%s' "$JIO_TEXT" | grep -oE '__hdnea__=[^"&[:space:]]+' | head -n1 || true)"
 
-          echo "3) Fetch ZEE_SOURCE and extract Zee token (hdntl=...)..."
+          echo "4) Fetch ZEE_SOURCE and extract Zee token (hdntl=...)..."
           ZEE_TEXT="$(curl_get "$ZEE_SOURCE")"
           ZEE_TOKEN="$(printf '%s' "$ZEE_TEXT" | grep -oE 'hdntl=[^"'"'"'[:space:]]+' | head -n1 || true)"
 
-          echo "4) Patch tokens into base playlist and write $OUT ..."
+          echo "5) Patch tokens into base playlist and write $OUT ..."
           {
-            # Keep exactly one header at top
             echo "#EXTM3U"
 
-            # Remove any other #EXTM3U lines; then patch:
-            # - JIO: refresh __hdnea__ in #EXTHTTP lines and in .mpd URLs
-            # - ZEE: refresh hdntl in #EXTHTTP lines and in .m3u8 URLs
             printf '%s\n' "$BASE_M3U" | awk -v jio="$JIO_TOKEN" -v zee="$ZEE_TOKEN" '
               function strip_query(u) { sub(/\?.*$/, "", u); return u }
               function keep_to_ext(u, ext,    p) {
@@ -70,8 +74,6 @@ jobs:
 
               {
                 line = $0
-
-                # Drop duplicate headers from the body
                 if (line ~ /^#EXTM3U$/) next
 
                 # Patch #EXTHTTP for Jio (__hdnea__)
@@ -88,7 +90,7 @@ jobs:
                   next
                 }
 
-                # Patch Jio .mpd URLs to base + ?__hdnea__=...
+                # Patch Jio .mpd URLs
                 if (jio != "" && line ~ /^https?:\/\// && line ~ /\.mpd/) {
                   line = strip_query(line)
                   line = keep_to_ext(line, ".mpd")
@@ -96,7 +98,7 @@ jobs:
                   next
                 }
 
-                # Patch Zee .m3u8 URLs to base + ?hdntl=...
+                # Patch Zee .m3u8 URLs
                 if (zee != "" && line ~ /^https?:\/\// && line ~ /\.m3u8/) {
                   line = strip_query(line)
                   line = keep_to_ext(line, ".m3u8")
@@ -109,7 +111,6 @@ jobs:
             '
           } > "$OUT"
 
-          # Final sanity check
           head -n 1 "$OUT" | grep -q "^#EXTM3U$"
 
       - name: Commit & Push
