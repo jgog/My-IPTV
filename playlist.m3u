@@ -2,7 +2,7 @@
 #EXTINF:-1 group-title="HOTSTAR" tvg-logo="usus",24/7 BIG BOSS
 https://livetv-push.hotstar.com/dash/live/2002466/sshindiwv/master.mpd?__hdnea__=st=1774233849~exp=1774320249~acl=/*~hmac=ea736a74238f3691019530d4f49a1f40622dec7494e06a9cef95a83e5be795d6
 #EXTINF:-1 group-title="HOTSTAR" tvg-logo="usus",DISNEY HD
-http://66.102.120.18:8000/play/a013/index.m3u8?hdntl=exp=1774323668~acl=/*~id=25ebbc00-618d-4eb3-9d45-9fb3b587240c~data=hdntl~hmac=3b1b156e352a7228370bb845129dc97a45a8b03f0e4cc79a962ee27597c3cf4a
+http://66.102.120.18:8000/play/a013/index.m3u8?hdntl=exp=1774347235~acl=/*~id=c3dcabf8-a413-4f9f-a9d6-0473b532f701~data=hdntl~hmac=6e9d88711cc36fc73f6b34ca2d1ba18f1c191938fbad92e50cea544b3e25f8ba
 #EXTM3U x-tvg-url="https://tsepg.cf/epg.xml.gz"
 
 #EXTINF:-1 tvg-id="001" group-title="News" tvg-logo="https://jiotv.catchup.cdn.jio.com/dare_images/images/10_TV.png",10 TV
