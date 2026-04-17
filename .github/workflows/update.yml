@@ -1,106 +1,18 @@
 name: Auto-Update playlist.m3u
-
 on:
   schedule:
-    - cron: "0 */12 * * *"
+    - cron: "0 */4 * * *"
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   update-playlist:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
-      - name: Build playlist.m3u (bash)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          OUT="playlist.m3u"
-          JIO_SOURCE="https://livetv-cb7.pages.dev/hotstar"
-          ZEE_SOURCE="https://join-vaathala1-for-more.vodep39240327.workers.dev/zee5.m3u"
-          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-
-          curl_get() {
-            curl -fsSL --retry 3 --retry-delay 2 -A "$UA" "$1"
-          }
-
-          echo "1) Fetch JIO_SOURCE..."
-          JIO_TEXT="$(curl_get "$JIO_SOURCE")"
-
-          echo "2) Determine base playlist..."
-          if grep -q "^#EXTM3U" <<<"$JIO_TEXT"; then
-            echo "   -> JIO_SOURCE is a playlist. Using it as base."
-            BASE_M3U="$JIO_TEXT"
-          else
-            echo "   -> JIO_SOURCE is not a playlist. Using existing $OUT as base."
-            if [ ! -s "$OUT" ]; then
-              echo "ERROR: $OUT is missing/empty and JIO_SOURCE is not an M3U. No base channels available."
-              exit 1
-            fi
-            BASE_M3U="$(cat "$OUT")"
-          fi
-
-          echo "3) Extract Jio token (__hdnea__) from JIO_SOURCE (if present)..."
-          JIO_TOKEN="$(grep -oE '__hdnea__=[^"&[:space:]]+' <<<"$JIO_TEXT" | head -n1 || true)"
-
-          echo "4) Fetch ZEE_SOURCE and extract Zee token (hdntl=...)..."
-          ZEE_TEXT="$(curl_get "$ZEE_SOURCE")"
-          ZEE_TOKEN="$(grep -oE 'hdntl=[^"'"'"'[:space:]]+' <<<"$ZEE_TEXT" | head -n1 || true)"
-
-          echo "5) Patch tokens into base playlist and write $OUT ..."
-          {
-            echo "#EXTM3U"
-            awk -v jio="$JIO_TOKEN" -v zee="$ZEE_TOKEN" '
-              function strip_query(u) { sub(/\?.*$/, "", u); return u }
-              function keep_to_ext(u, ext,    p) {
-                p = index(u, ext)
-                if (p > 0) return substr(u, 1, p + length(ext) - 1)
-                return u
-              }
-
-              {
-                line = $0
-                if (line ~ /^#EXTM3U$/) next
-
-                if (jio != "" && line ~ /#EXTHTTP/ && line ~ /__hdnea__=/) {
-                  gsub(/__hdnea__=[^"}[:space:]]+/, jio, line)
-                  print line
-                  next
-                }
-
-                if (zee != "" && line ~ /#EXTHTTP/ && line ~ /hdntl=/) {
-                  gsub(/hdntl=[^"}[:space:]]+/, zee, line)
-                  print line
-                  next
-                }
-
-                if (jio != "" && line ~ /^https?:\/\// && line ~ /\.mpd/) {
-                  line = strip_query(line)
-                  line = keep_to_ext(line, ".mpd")
-                  print line "?" jio
-                  next
-                }
-
-                if (zee != "" && line ~ /^https?:\/\// && line ~ /\.m3u8/) {
-                  line = strip_query(line)
-                  line = keep_to_ext(line, ".m3u8")
-                  print line "?" zee
-                  next
-                }
-
-                print line
-              }
-            ' <<<"$BASE_M3U"
-          } > "$OUT"
-
-          grep -q "^#EXTM3U$" <(head -n1 "$OUT")
+      - name: Refresh playlist
+        run: python3 .github/scripts/update_playlist.py
 
       - name: Commit & Push
         run: |
