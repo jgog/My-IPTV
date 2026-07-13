@@ -19,17 +19,33 @@ def fetch(url: str) -> str:
         return r.read().decode("utf-8", errors="replace")
 
 
-def extract_jio_token(jio_json_text: str) -> str:
-    """Parse JSON, pull the __hdnea__ query param from any entry's URL.
+def extract_jio_token(jio_m3u_text: str) -> str:
+    """Parse M3U, extract the __hdnea__ token from any URL or #EXTHTTP header.
     All entries share the same token (wildcard ACL), so first hit wins."""
-    data = json.loads(jio_json_text)
-    for entry in data.values():
-        url = entry.get("url", "")
-        # URL format: ...mpd?__hdnea__=TOKEN|cookie=...  — stop at | & space quote
-        m = re.search(r"__hdnea__=[^|&\s\"]+", url)
-        if m:
-            return m.group(0)
-    raise RuntimeError("No __hdnea__ token found in JIO JSON")
+    for line in jio_m3u_text.splitlines():
+        line = line.rstrip()
+        
+        # Check for token in #EXTHTTP header
+        if line.startswith("#EXTHTTP:"):
+            try:
+                # Parse JSON from #EXTHTTP: header
+                json_str = line[len("#EXTHTTP:"):]
+                data = json.loads(json_str)
+                # Token might be in Cookie header
+                if "Cookie" in data:
+                    m = re.search(r"__hdnea__=[^~&\s\"]+", data["Cookie"])
+                    if m:
+                        return m.group(0)
+            except (json.JSONDecodeError, KeyError):
+                pass
+        
+        # Check for token in URL query string
+        if line.startswith(("http://", "https://")):
+            m = re.search(r"__hdnea__=[^|&\s\"]+", line)
+            if m:
+                return m.group(0)
+    
+    raise RuntimeError("No __hdnea__ token found in JIO M3U")
 
 
 def iter_blocks(m3u_text: str):
@@ -52,43 +68,67 @@ def iter_blocks(m3u_text: str):
         yield block, None
 
 
-def refresh_jio(base_m3u: str, token: str) -> list[str]:
-    """Return output lines for JIO entries only (.mpd), token refreshed."""
+def refresh_jio(jio_m3u: str, token: str) -> list[str]:
+    """Return output lines for JIO entries (.m3u8 or .mpd), token refreshed."""
     out = []
-    for meta, url in iter_blocks(base_m3u):
-        if url is None or ".mpd" not in url:
-            continue  # drop Zee (.m3u8) entries carried over from last run
+    for meta, url in iter_blocks(jio_m3u):
+        if url is None:
+            continue  # skip entries without URLs
+        
+        # Process metadata lines, refreshing token in any #EXTHTTP / #KODIPROP headers
         for m in meta:
-            # Refresh token inside any #EXTHTTP / #KODIPROP line that carries it
-            if "__hdnea__=" in m:
+            if m.startswith("#EXTHTTP:"):
+                try:
+                    # Parse and update Cookie header with new token
+                    json_str = m[len("#EXTHTTP:"):]
+                    data = json.loads(json_str)
+                    if "Cookie" in data:
+                        data["Cookie"] = re.sub(r"__hdnea__=[^~&\s\"]+", token, data["Cookie"])
+                    m = f"#EXTHTTP:{json.dumps(data)}"
+                except (json.JSONDecodeError, KeyError):
+                    # If parsing fails, try simple regex replacement
+                    if "__hdnea__=" in m:
+                        m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
+            elif "__hdnea__=" in m:
+                # Refresh token in other headers that carry it
                 m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
+            
             out.append(m)
-        # Clean URL: drop any existing query, append fresh token
-        out.append(f"{url.split('?', 1)[0]}?{token}")
+        
+        # Clean URL: drop any existing __hdnea__ query param, append fresh token
+        base_url = url.split("?", 1)[0]
+        # Preserve other query params if present
+        if "?" in url:
+            other_params = url.split("?", 1)[1]
+            # Remove __hdnea__ if it's in other_params
+            other_params = re.sub(r"__hdnea__=[^&]+&?", "", other_params).rstrip("&")
+            if other_params:
+                out.append(f"{base_url}?{other_params}&{token}")
+            else:
+                out.append(f"{base_url}?{token}")
+        else:
+            out.append(f"{base_url}?{token}")
+    
     return out
 
 
 def main() -> None:
-    print("1) Fetch JIO JSON + extract token")
-    jio_token = extract_jio_token(fetch(JIO_SOURCE))
+    print("1) Fetch JIO M3U + extract token")
+    jio_source = fetch(JIO_SOURCE)
+    jio_token = extract_jio_token(jio_source)
     print(f"   -> {jio_token[:60]}...")
 
-    print("2) Load existing playlist as JIO base")
-    if not OUT.exists() or OUT.stat().st_size == 0:
-        sys.exit(f"ERROR: {OUT} is missing/empty")
-    base = OUT.read_text()
-
-    print("3) Refresh JIO entries")
-    jio_lines = refresh_jio(base, jio_token)
+    print("2) Refresh JIO entries")
+    jio_lines = refresh_jio(jio_source, jio_token)
     print(f"   -> {sum(1 for l in jio_lines if l.startswith(('http://','https://')))} JIO channels")
 
-    print("4) Fetch fresh Zee m3u")
+    print("3) Fetch fresh Zee m3u")
     zee = fetch(ZEE_SOURCE)
     if not zee.lstrip().startswith("#EXTM3U"):
         print("   WARNING: Zee source doesn't look like an M3U")
     zee_lines = [l for l in zee.splitlines() if not l.startswith("#EXTM3U")]
 
-    print("5) Write output")
+    print("4) Write output")
     OUT.write_text("\n".join(["#EXTM3U", *jio_lines, *zee_lines]) + "\n")
     print(f"   -> wrote {OUT} ({OUT.stat().st_size} bytes)")
 
