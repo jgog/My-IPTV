@@ -6,7 +6,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-JIO_SOURCE = "https://jo-json.vodep39240327.workers.dev"
+JIO_SOURCE = "https://fancy-morning-a287.poonamchouhan076.workers.dev"
 ZEE_SOURCE = "https://join-vaathala1-for-more.vodep39240327.workers.dev/zee5.m3u"
 OUT = Path("playlist.m3u")
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
