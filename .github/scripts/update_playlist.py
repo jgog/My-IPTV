@@ -26,15 +26,16 @@ def extract_jio_token(jio_m3u_text: str) -> str | None:
     for line in jio_m3u_text.splitlines():
         line = line.rstrip()
         
-        # Check for token in #EXTHTTP header
+        # Check for token in #EXTHTTP header (case-insensitive for Cookie key)
         if line.startswith("#EXTHTTP:"):
             try:
                 # Parse JSON from #EXTHTTP: header
                 json_str = line[len("#EXTHTTP:"):]
                 data = json.loads(json_str)
-                # Token might be in Cookie header
-                if "Cookie" in data:
-                    m = re.search(r"__hdnea__=[^~&\s\"]+", data["Cookie"])
+                # Token might be in Cookie header (try both "Cookie" and "cookie")
+                cookie_value = data.get("Cookie") or data.get("cookie")
+                if cookie_value:
+                    m = re.search(r"__hdnea__=[^~&\s\"]+", cookie_value)
                     if m:
                         return m.group(0)
             except (json.JSONDecodeError, KeyError):
@@ -84,8 +85,12 @@ def refresh_jio(jio_m3u: str, token: str | None) -> list[str]:
                     # Parse and update Cookie header with new token
                     json_str = m[len("#EXTHTTP:"):]
                     data = json.loads(json_str)
-                    if "Cookie" in data:
-                        data["Cookie"] = re.sub(r"__hdnea__=[^~&\s\"]+", token, data["Cookie"])
+                    # Normalize to "Cookie" (capital C)
+                    cookie_value = data.get("Cookie") or data.get("cookie")
+                    if cookie_value:
+                        data["Cookie"] = re.sub(r"__hdnea__=[^~&\s\"]+", token, cookie_value)
+                        # Remove lowercase "cookie" if it exists to avoid duplicates
+                        data.pop("cookie", None)
                     m = f"#EXTHTTP:{json.dumps(data)}"
                 except (json.JSONDecodeError, KeyError):
                     # If parsing fails, try simple regex replacement
