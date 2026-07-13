@@ -19,9 +19,10 @@ def fetch(url: str) -> str:
         return r.read().decode("utf-8", errors="replace")
 
 
-def extract_jio_token(jio_m3u_text: str) -> str:
+def extract_jio_token(jio_m3u_text: str) -> str | None:
     """Parse M3U, extract the __hdnea__ token from any URL or #EXTHTTP header.
-    All entries share the same token (wildcard ACL), so first hit wins."""
+    All entries share the same token (wildcard ACL), so first hit wins.
+    Returns None if no token found."""
     for line in jio_m3u_text.splitlines():
         line = line.rstrip()
         
@@ -45,7 +46,7 @@ def extract_jio_token(jio_m3u_text: str) -> str:
             if m:
                 return m.group(0)
     
-    raise RuntimeError("No __hdnea__ token found in JIO M3U")
+    return None
 
 
 def iter_blocks(m3u_text: str):
@@ -68,8 +69,9 @@ def iter_blocks(m3u_text: str):
         yield block, None
 
 
-def refresh_jio(jio_m3u: str, token: str) -> list[str]:
-    """Return output lines for JIO entries (.m3u8 or .mpd), token refreshed."""
+def refresh_jio(jio_m3u: str, token: str | None) -> list[str]:
+    """Return output lines for JIO entries (.m3u8 or .mpd), token refreshed if available.
+    If token is None, pass through entries as-is."""
     out = []
     for meta, url in iter_blocks(jio_m3u):
         if url is None:
@@ -77,7 +79,7 @@ def refresh_jio(jio_m3u: str, token: str) -> list[str]:
         
         # Process metadata lines, refreshing token in any #EXTHTTP / #KODIPROP headers
         for m in meta:
-            if m.startswith("#EXTHTTP:"):
+            if token and m.startswith("#EXTHTTP:"):
                 try:
                     # Parse and update Cookie header with new token
                     json_str = m[len("#EXTHTTP:"):]
@@ -89,25 +91,29 @@ def refresh_jio(jio_m3u: str, token: str) -> list[str]:
                     # If parsing fails, try simple regex replacement
                     if "__hdnea__=" in m:
                         m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
-            elif "__hdnea__=" in m:
+            elif token and "__hdnea__=" in m:
                 # Refresh token in other headers that carry it
                 m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
             
             out.append(m)
         
-        # Clean URL: drop any existing __hdnea__ query param, append fresh token
-        base_url = url.split("?", 1)[0]
-        # Preserve other query params if present
-        if "?" in url:
-            other_params = url.split("?", 1)[1]
-            # Remove __hdnea__ if it's in other_params
-            other_params = re.sub(r"__hdnea__=[^&]+&?", "", other_params).rstrip("&")
-            if other_params:
-                out.append(f"{base_url}?{other_params}&{token}")
+        # Clean URL: drop any existing __hdnea__ query param, append fresh token if available
+        if token:
+            base_url = url.split("?", 1)[0]
+            # Preserve other query params if present
+            if "?" in url:
+                other_params = url.split("?", 1)[1]
+                # Remove __hdnea__ if it's in other_params
+                other_params = re.sub(r"__hdnea__=[^&]+&?", "", other_params).rstrip("&")
+                if other_params:
+                    out.append(f"{base_url}?{other_params}&{token}")
+                else:
+                    out.append(f"{base_url}?{token}")
             else:
                 out.append(f"{base_url}?{token}")
         else:
-            out.append(f"{base_url}?{token}")
+            # No token available, pass URL as-is
+            out.append(url)
     
     return out
 
@@ -116,9 +122,12 @@ def main() -> None:
     print("1) Fetch JIO M3U + extract token")
     jio_source = fetch(JIO_SOURCE)
     jio_token = extract_jio_token(jio_source)
-    print(f"   -> {jio_token[:60]}...")
+    if jio_token:
+        print(f"   -> {jio_token[:60]}...")
+    else:
+        print("   -> No token found, will pass JIO entries as-is")
 
-    print("2) Refresh JIO entries")
+    print("2) Process JIO entries")
     jio_lines = refresh_jio(jio_source, jio_token)
     print(f"   -> {sum(1 for l in jio_lines if l.startswith(('http://','https://')))} JIO channels")
 
