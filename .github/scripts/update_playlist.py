@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh JIO __hdnea__ cookies and append fresh Zee m3u."""
+"""Refresh JIO tokens (both __hdnea__ and hdntl) and append fresh Zee m3u."""
 import json
 import re
 import sys
@@ -19,35 +19,42 @@ def fetch(url: str) -> str:
         return r.read().decode("utf-8", errors="replace")
 
 
-def extract_jio_token(jio_m3u_text: str) -> str | None:
-    """Parse M3U, extract the __hdnea__ token from any URL or #EXTHTTP header.
-    All entries share the same token (wildcard ACL), so first hit wins.
-    Returns None if no token found."""
-    for line in jio_m3u_text.splitlines():
+def extract_tokens(m3u_text: str) -> dict | None:
+    """Parse M3U, extract tokens from any URL or #EXTHTTP header.
+    Returns dict with 'hdnea' and/or 'hdntl' tokens if found, or None."""
+    tokens = {}
+    
+    for line in m3u_text.splitlines():
         line = line.rstrip()
         
-        # Check for token in #EXTHTTP header (case-insensitive for Cookie key)
+        # Check for tokens in #EXTHTTP header
         if line.startswith("#EXTHTTP:"):
             try:
-                # Parse JSON from #EXTHTTP: header
                 json_str = line[len("#EXTHTTP:"):]
                 data = json.loads(json_str)
-                # Token might be in Cookie header (try both "Cookie" and "cookie")
                 cookie_value = data.get("Cookie") or data.get("cookie")
                 if cookie_value:
+                    # Look for __hdnea__ token
                     m = re.search(r"__hdnea__=[^~&\s\"]+", cookie_value)
                     if m:
-                        return m.group(0)
+                        tokens['hdnea'] = m.group(0)
+                    # Look for hdntl token
+                    m = re.search(r"hdntl=[^~&\s\"~]*(?:~[^~&\s\"~]*)*", cookie_value)
+                    if m:
+                        tokens['hdntl'] = m.group(0)
             except (json.JSONDecodeError, KeyError):
                 pass
         
-        # Check for token in URL query string
+        # Check for tokens in URL query string
         if line.startswith(("http://", "https://")):
             m = re.search(r"__hdnea__=[^|&\s\"]+", line)
-            if m:
-                return m.group(0)
+            if m and 'hdnea' not in tokens:
+                tokens['hdnea'] = m.group(0)
+            m = re.search(r"hdntl=[^&\s\"]+", line)
+            if m and 'hdntl' not in tokens:
+                tokens['hdntl'] = m.group(0)
     
-    return None
+    return tokens if tokens else None
 
 
 def iter_blocks(m3u_text: str):
@@ -70,70 +77,82 @@ def iter_blocks(m3u_text: str):
         yield block, None
 
 
-def refresh_jio(jio_m3u: str, token: str | None) -> list[str]:
-    """Return output lines for JIO entries (.m3u8 or .mpd), token refreshed if available.
-    If token is None, pass through entries as-is."""
+def refresh_streams(m3u: str, tokens: dict | None) -> list[str]:
+    """Return output lines for entries, tokens refreshed if available.
+    If tokens is None, pass through entries as-is."""
     out = []
-    for meta, url in iter_blocks(jio_m3u):
+    for meta, url in iter_blocks(m3u):
         if url is None:
             continue  # skip entries without URLs
         
-        # Process metadata lines, refreshing token in any #EXTHTTP / #KODIPROP headers
+        # Process metadata lines, refreshing tokens in any #EXTHTTP / #KODIPROP headers
         for m in meta:
-            if token and m.startswith("#EXTHTTP:"):
+            if tokens and m.startswith("#EXTHTTP:"):
                 try:
-                    # Parse and update Cookie header with new token
                     json_str = m[len("#EXTHTTP:"):]
                     data = json.loads(json_str)
                     # Normalize to "Cookie" (capital C)
-                    cookie_value = data.get("Cookie") or data.get("cookie")
+                    cookie_value = data.get("Cookie") or data.get("cookie") or ""
+                    
+                    # Refresh __hdnea__ token if we have one
+                    if 'hdnea' in tokens:
+                        cookie_value = re.sub(r"__hdnea__=[^~&\s\"]+", tokens['hdnea'], cookie_value)
+                    
+                    # Refresh hdntl token if we have one
+                    if 'hdntl' in tokens:
+                        cookie_value = re.sub(r"hdntl=[^~&\s\"~]*(?:~[^~&\s\"~]*)*", tokens['hdntl'], cookie_value)
+                    
                     if cookie_value:
-                        data["Cookie"] = re.sub(r"__hdnea__=[^~&\s\"]+", token, cookie_value)
-                        # Remove lowercase "cookie" if it exists to avoid duplicates
-                        data.pop("cookie", None)
+                        data["Cookie"] = cookie_value
+                    
+                    # Remove lowercase "cookie" if it exists to avoid duplicates
+                    data.pop("cookie", None)
                     m = f"#EXTHTTP:{json.dumps(data)}"
                 except (json.JSONDecodeError, KeyError):
                     # If parsing fails, try simple regex replacement
-                    if "__hdnea__=" in m:
-                        m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
-            elif token and "__hdnea__=" in m:
-                # Refresh token in other headers that carry it
-                m = re.sub(r"__hdnea__=[^\"}\s]+", token, m)
+                    if "__hdnea__=" in m and 'hdnea' in tokens:
+                        m = re.sub(r"__hdnea__=[^\"}\s]+", tokens['hdnea'], m)
+                    if "hdntl=" in m and 'hdntl' in tokens:
+                        m = re.sub(r"hdntl=[^\"}\s]+", tokens['hdntl'], m)
+            elif tokens:
+                # Refresh tokens in other headers
+                if "__hdnea__=" in m and 'hdnea' in tokens:
+                    m = re.sub(r"__hdnea__=[^\"}\s]+", tokens['hdnea'], m)
+                if "hdntl=" in m and 'hdntl' in tokens:
+                    m = re.sub(r"hdntl=[^\"}\s]+", tokens['hdntl'], m)
             
             out.append(m)
         
-        # Clean URL: drop any existing __hdnea__ query param, append fresh token if available
-        if token:
-            base_url = url.split("?", 1)[0]
-            # Preserve other query params if present
-            if "?" in url:
-                other_params = url.split("?", 1)[1]
-                # Remove __hdnea__ if it's in other_params
-                other_params = re.sub(r"__hdnea__=[^&]+&?", "", other_params).rstrip("&")
-                if other_params:
-                    out.append(f"{base_url}?{other_params}&{token}")
-                else:
-                    out.append(f"{base_url}?{token}")
-            else:
-                out.append(f"{base_url}?{token}")
+        # Clean URL: refresh tokens if available
+        if tokens:
+            url_out = url
+            # Refresh __hdnea__ in URL if present and we have a token
+            if 'hdnea' in tokens and "__hdnea__=" in url_out:
+                url_out = re.sub(r"__hdnea__=[^&\s\"]+", tokens['hdnea'], url_out)
+            # Refresh hdntl in URL if present and we have a token
+            if 'hdntl' in tokens and "hdntl=" in url_out:
+                url_out = re.sub(r"hdntl=[^&\s\"]+", tokens['hdntl'], url_out)
+            out.append(url_out)
         else:
-            # No token available, pass URL as-is
+            # No tokens available, pass URL as-is
             out.append(url)
     
     return out
 
 
 def main() -> None:
-    print("1) Fetch JIO M3U + extract token")
+    print("1) Fetch JIO M3U + extract tokens")
     jio_source = fetch(JIO_SOURCE)
-    jio_token = extract_jio_token(jio_source)
-    if jio_token:
-        print(f"   -> {jio_token[:60]}...")
+    jio_tokens = extract_tokens(jio_source)
+    if jio_tokens:
+        print(f"   -> Tokens found: {list(jio_tokens.keys())}")
+        for token_type, token_val in jio_tokens.items():
+            print(f"      {token_type}: {token_val[:60]}...")
     else:
-        print("   -> No token found, will pass JIO entries as-is")
+        print("   -> No tokens found, will pass JIO entries as-is")
 
     print("2) Process JIO entries")
-    jio_lines = refresh_jio(jio_source, jio_token)
+    jio_lines = refresh_streams(jio_source, jio_tokens)
     print(f"   -> {sum(1 for l in jio_lines if l.startswith(('http://','https://')))} JIO channels")
 
     print("3) Fetch fresh Zee m3u")
