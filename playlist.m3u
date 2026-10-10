@@ -1,7 +1,9 @@
 #EXTM3U
+#EXTINF:-1 group-title="Highlights" tvg-logo="https://video-images-cdn.staylive.tv/xm6ifp/thumbnail.jpg?aspect_ratio=16%3A9&width=1280&quality=82",ind vs wi 2nd t-20 highlights
+https://www.bcci.tv/videos/s-ind-vs-wi-2026-2nd-t20i-match-highlights-4xkh0k?utm_source=video&utm_medium=onebox&utm_campaign=wim
 #EXTINF:-1 group-title="Highlights" tvg-logo="https://img10.hotstar.com/image/upload/f_auto,q_90/sources/r1/cms/prod/7733/1791304977733-h",ind vs wi 1st t-20
 https://www.bcci.tv/videos/s-ind-vs-wi-2026-1st-t20i-match-highlights-v93ob?utm_source=video&utm_medium=onebox&utm_campaign=wim
-#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦" tvg-logo="https://iili.io/n1OB4yu.png",Ind vs Wi [Hindi]
+#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦✨" tvg-logo="https://iili.io/nG63UrX.png",Ind vs Wi [Hindi]
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=b9f1cb8a1361457bbd8097f8c2590000:1960274b7ba344cb899eba2e80916774
 #KODIPROP:inputstream=inputstream.adaptive
@@ -9,7 +11,7 @@ https://www.bcci.tv/videos/s-ind-vs-wi-2026-1st-t20i-match-highlights-v93ob?utm_
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169@Premium Plugx(Android/15)
 #EXTHTTP:{"Cookie": "hh"}
 https://livetv.hotstar.com/mp1/gec-india-1540068295/5a4eb3ac6e424eef8a30962d2232f80f/index.mpd
-#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦" tvg-logo="https://iili.io/n1OB4yu.png",Ind vs Wi [English]
+#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦✨" tvg-logo="https://iili.io/nG6ThYl.png",Ind vs Wi [English]
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=e85897bf6e594d698b7c82646c8e0000:d2dda31234ae40538843e871cd4dcc2a
 #KODIPROP:inputstream=inputstream.adaptive
@@ -17,7 +19,7 @@ https://livetv.hotstar.com/mp1/gec-india-1540068295/5a4eb3ac6e424eef8a30962d2232
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169@Premium Plugx(Android/15)
 #EXTHTTP:{"Cookie": "hh"}
 https://livetv.hotstar.com/mp1/gec-india-1540068247/9a6e7c30f9194cc1a6a6250cedb115fb/index.mpd
-#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦" tvg-logo="https://iili.io/n1OB4yu.png",Ind vs Wi [Kannada]
+#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦✨" tvg-logo="https://iili.io/nG61Yzv.png",Ind vs Wi [Kannada]
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=eb2f9710abf44bb1bcf51400ccc00000:5f29f372823346e78934431f2a924065
 #KODIPROP:inputstream=inputstream.adaptive
@@ -25,7 +27,7 @@ https://livetv.hotstar.com/mp1/gec-india-1540068247/9a6e7c30f9194cc1a6a6250cedb1
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169@Premium Plugx(Android/15)
 #EXTHTTP:{"Cookie": "hh"}
 https://livetv.hotstar.com/mp1/gec-india-1540068322/6409ab04235d4a0886656913f360c0a7/index.mpd
-#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦" tvg-logo="https://iili.io/n1OB4yu.png",Ind vs Wi [Telugu]
+#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦✨" tvg-logo="https://iili.io/nG6VXF2.png",Ind vs Wi [Telugu]
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=4634b32328f242e3be51c3e06cde0000:42e90ab215bf4a438b55851b5e0f50dc
 #KODIPROP:inputstream=inputstream.adaptive
@@ -73,7 +75,7 @@ https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/avqlywnuzx/out/v1
 #KODIPROP:inputstream=inputstream.adaptive
 #KODIPROP:inputstream.adaptive.manifest.type=mpd
 https://ottlive.dishhome.com.np/protected/jATOzZkB0RDJ74Ryniuo/dash/manifest.mpd
-#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦" tvg-logo="https://assets.dishhomego.com.np/f_webp,q_85,w_250/dhome/posters/44c5d57c-c3bd-4ea6-a367-52c4388e5287.jpg",IND VS  WI [ Hinglish]
+#EXTINF:-1 group-title="✨✦ʟɪᴠᴇ ᴇᴠᴇɴᴛꜱ✦✨" tvg-logo="https://iili.io/nG6kjSf.png",IND VS  WI [ Hinglish]
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=https://raw.githubusercontent.com/Prtstream820894/Prt-live/refs/heads/main/key.json
 #KODIPROP:inputstream=inputstream.adaptive
@@ -578,17 +580,21 @@ https://livetv.hotstar.com/mp2/gec-india-1540065785/a00717b1324f45eb814eec9e48a1
 https://delta45tatasky.akamaized.net/out/i/1633.mpd|drmScheme=clearkey&drmLicense=6f715e0e16cf4b20bc94f6f85023974b:516785ded0aee1dafae22e2874528b2a
 #EXTINF:-1 tvg-id="12" group-title="Movies" tvg-logo="https://i.pinimg.com/originals/c9/fc/7c/c9fc7ca579b5f2ff4053bdeb11956b40.jpg",Sony max HD
 https://cloudplay-sonyliv.pages.dev/maxhd.m3u8
-#EXTINF:-1 group-title="Sports" tvg-logo="https://img10.hotstar.com/image/upload/f_auto,q_90,w_1920/sources/r1/cms/prod/7430/567430-h",Star Sports HD1
+#EXTINF:-1 group-title="Sports" tvg-logo="https://img10.hotstar.com/image/upload/f_auto,q_90,w_1920/sources/r1/cms/prod/7430/567430-h",Star Sports 1 HD
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=b7cdde012ce04e90a08b90622e020000:13603245acab444faef6cab5198de55f
+#KODIPROP:inputstream=inputstream.adaptive
+#KODIPROP:inputstream.adaptive.manifest.type=mpd
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169 (Android/15)
-#EXTHTTP:{"Cookie": "hdntl=exp=1791502508~acl=%2f*~id=858217579ac0027419f7d5855af9fee3~data=hdntl~hmac=3b4b16172d98f8603b3af7a1d00d73420c9c1fee8afbc706b579305d2e982f3e", "Origin": "https://www.hotstar.com", "Referer": "https://www.hotstar.com/"}
+#EXTHTTP:{"Cookie": "hh"}
 https://livetv.hotstar.com/mp1/gec-india-1540065782/fce958099ca84fc3b980e651a4a668a8/index.mpd
-#EXTINF:-1 group-title="Sports" tvg-logo="https://img10.hotstar.com/image/upload/f_auto,q_90,w_1920/sources/r1/cms/prod/7433/567433-h",Star Sports Hindi HD1
+#EXTINF:-1 group-title="Sports" tvg-logo="https://img10.hotstar.com/image/upload/f_auto,q_90,w_1920/sources/r1/cms/prod/7433/567433-h",Star Sports 1 Hindi HD
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=81872faa1d6b45fa9045cdeb2e310000:9b88168e61274587a471962c46b94675
+#KODIPROP:inputstream=inputstream.adaptive
+#KODIPROP:inputstream.adaptive.manifest.type=mpd
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169 (Android/15)
-#EXTHTTP:{"Cookie": "hdntl=exp=1791502508~acl=%2f*~id=858217579ac0027419f7d5855af9fee3~data=hdntl~hmac=3b4b16172d98f8603b3af7a1d00d73420c9c1fee8afbc706b579305d2e982f3e", "Origin": "https://www.hotstar.com", "Referer": "https://www.hotstar.com/"}
+#EXTHTTP:{"Cookie": "hdntl=exp=1791502508~acl=%2f*~id=858217579ac0027419f7d5855af9fee3~data=hdntl~hmac=3b4b16172d98f8603b3af7a1d00d73420c9c1fee8afbc706b579305d2e982f3e"}
 https://livetv.hotstar.com/mp1/gec-india-1540065788/fa6a4f0005ef4f90ab24484d165b0aaf/index.mpd
 #EXTINF:-1 group-title="Sports" tvg-logo="https://dvdh7g0f0hwck.cloudfront.net/assets/images/channel/StarSports2HindiHD_Transparent_c72d6289-27aa-422d-8420-40135329a5b6.png",Star Sports 2 Hindi HD
 #EXTVLCOPT:http-user-agent=Hotstar;in.startv.hotstar/25.02.24.8.11169 (Android/15)
