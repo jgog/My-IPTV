@@ -1,7 +1,7 @@
 name: Auto-Update playlist.m3u
 on:
   schedule:
-    - cron: "0 */24 * * *"
+    - cron: "0 */4 * * *"  
   workflow_dispatch:
 permissions:
   contents: write
